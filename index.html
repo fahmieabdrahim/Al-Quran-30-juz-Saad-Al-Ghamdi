@@ -15,10 +15,10 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center pt-4 pb-16 px-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center pt-28 pb-24 px-4">
 
-    <!-- Pemain Audio Ala Spotify (Melekat di Atas) -->
-    <div class="sticky top-0 left-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-800 py-3 px-4 shadow-lg z-50 flex justify-center mb-4">
+    <!-- Pemain Audio Ala Spotify (Melekat di Atas & Tiada Garisan) -->
+    <div class="fixed top-0 left-0 w-full bg-slate-900/95 backdrop-blur py-3 px-4 shadow-lg z-50 flex justify-center">
         <div class="w-full max-w-md">
             <!-- Tajuk & Info -->
             <div class="text-center mb-2">
@@ -48,10 +48,10 @@
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                 </button>
 
-                <!-- Butang Play / Pause Utama -->
-                <button onclick="togglePlayPause()" id="btn-play-pause" title="Main / Jeda" class="w-10 h-10 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition cursor-pointer shadow-md">
-                    <svg id="icon-play" class="w-5 h-5 translate-x-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    <svg id="icon-pause" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                <!-- Butang Play / Pause Utama (Hijau & Tiada Bulatan Putih) -->
+                <button onclick="togglePlayPause()" id="btn-play-pause" title="Main / Jeda" class="text-emerald-500 hover:text-emerald-400 transition cursor-pointer p-1">
+                    <svg id="icon-play" class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg id="icon-pause" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 </button>
 
                 <!-- Butang Next -->
@@ -68,24 +68,26 @@
         </div>
     </div>
 
-    <!-- Bar Penapis (Semua / Disukai) -->
+    <!-- Kaunter Senarai Surah (Tanpa Tab/Butang Penapis) -->
     <div class="w-full max-w-md flex items-center justify-between mb-4 px-1">
         <span id="list-counter" class="text-xs text-slate-400 font-medium">Senarai Surah (114)</span>
-        <div class="flex gap-2">
-            <button id="filter-all" onclick="setFilter('all')" class="text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer">Semua</button>
-            <button id="filter-liked" onclick="setFilter('liked')" class="text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer flex items-center gap-1">
-                <svg class="w-3.5 h-3.5 text-rose-500 fill-rose-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                Disukai
-            </button>
-        </div>
     </div>
 
     <!-- Senarai 114 Surah Penuh -->
-    <main id="surah-list" class="w-full max-w-md divide-y divide-slate-800">
+    <main id="surah-list" class="w-full max-w-md divide-y divide-slate-800 mb-8">
         <div id="loading" class="text-center py-8 text-slate-500 text-sm">
             Memuatkan 30 Juz Al-Quran...
         </div>
     </main>
+
+    <!-- Footer Teks Pilihan (Fixed Bottom & Tiada Garisan) -->
+    <footer class="fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur py-3 px-4 shadow-lg z-40 flex justify-center">
+        <div class="w-full max-w-md text-center">
+            <p class="text-xs text-slate-400">
+                Semoga kita sentiasa dalam rahmat Allah
+            </p>
+        </div>
+    </footer>
 
     <!-- Skrip JavaScript -->
     <script>
@@ -93,8 +95,7 @@
         let currentIndex = -1;
         let chaptersData = [];
         let isShuffle = false;
-        let repeatMode = 0; // 0: Tutup, 1: Ulang Semua (Auto-Next), 2: Ulang Satu
-        let currentFilter = 'all'; // 'all' atau 'liked'
+        let repeatMode = 0; 
         let likedSurahs = JSON.parse(localStorage.getItem('likedSurahs')) || [];
 
         const audioElement = document.getElementById('audio-player');
@@ -108,8 +109,6 @@
         const btnRepeat = document.getElementById('btn-repeat');
         const repeatBadge = document.getElementById('repeat-badge');
         const btnShuffle = document.getElementById('btn-shuffle');
-        const filterAllBtn = document.getElementById('filter-all');
-        const filterLikedBtn = document.getElementById('filter-liked');
         const listCounter = document.getElementById('list-counter');
 
         const AUDIO_BASE_URL = "https://server7.mp3quran.net/s_gmd/";
@@ -133,20 +132,8 @@
             }
         }
 
-        function setFilter(filter) {
-            currentFilter = filter;
-            if (filter === 'all') {
-                filterAllBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer";
-                filterLikedBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer flex items-center gap-1";
-            } else {
-                filterLikedBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer flex items-center gap-1";
-                filterAllBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer";
-            }
-            renderSurahList();
-        }
-
         function toggleLike(event, chapterId) {
-            event.stopPropagation(); // Elak daripada mencetuskan event main audio pada senarai
+            event.stopPropagation();
             const index = likedSurahs.indexOf(chapterId);
             if (index > -1) {
                 likedSurahs.splice(index, 1);
@@ -157,29 +144,28 @@
             renderSurahList();
         }
 
+        // Tentukan senarai giliran main (Playlist) secara automatik:
+        // - Jika surah yang sedang/hendak dimainkan ada dalam senarai 'likedSurahs', playlist HANYA mengandungi surah-surah yang di-like sahaja.
+        // - Jika tidak, playlist mengandungi kesemua 114 surah.
+        function getPlayQueue(targetChapterId) {
+            const isTargetLiked = likedSurahs.includes(targetChapterId);
+            if (isTargetLiked && likedSurahs.length > 0) {
+                // Sentiasa susun mengikut urutan nombor surah asal yang di-like
+                return chaptersData.filter(chapter => likedSurahs.includes(chapter.id));
+            }
+            return chaptersData;
+        }
+
         function renderSurahList() {
             surahListContainer.innerHTML = '';
             
-            let filteredChapters = chaptersData;
-            if (currentFilter === 'liked') {
-                filteredChapters = chaptersData.filter(chapter => likedSurahs.includes(chapter.id));
-            }
-
-            listCounter.innerText = `Senarai Surah (${filteredChapters.length})`;
-
-            if (filteredChapters.length === 0) {
-                surahListContainer.innerHTML = `<div class="text-center py-12 text-slate-500 text-sm">Tiada surah disukai lagi. Klik ikon hati pada mana-mana surah untuk menambahnya di sini.</div>`;
-                return;
-            }
-
-            filteredChapters.forEach((chapter) => {
-                const originalIndex = chaptersData.findIndex(c => c.id === chapter.id);
-                const formattedId = String(chapter.id).padStart(3, '0');
+            chaptersData.forEach((chapter) => {
                 const isLiked = likedSurahs.includes(chapter.id);
+                const isCurrentPlaying = (currentIndex === chapter.id - 1);
 
                 const div = document.createElement('div');
                 div.className = "py-3 px-3 flex items-center justify-between cursor-pointer hover:bg-slate-800/60 transition rounded-lg";
-                if (currentIndex === originalIndex) {
+                if (isCurrentPlaying) {
                     div.classList.add('bg-slate-800', 'font-semibold');
                     currentElement = div;
                 }
@@ -199,19 +185,20 @@
                     </div>
                 `;
 
-                div.onclick = () => playIndex(originalIndex);
+                div.onclick = () => playChapter(chapter.id);
                 surahListContainer.appendChild(div);
             });
         }
 
-        function playIndex(index) {
-            if (index < 0 || index >= chaptersData.length) return;
-            currentIndex = index;
-            const chapter = chaptersData[index];
+        function playChapter(chapterId) {
+            currentIndex = chapterId - 1;
+            const chapter = chaptersData[currentIndex];
+            if (!chapter) return;
+
             const formattedId = String(chapter.id).padStart(3, '0');
             const audioUrl = `${AUDIO_BASE_URL}${formattedId}.mp3`;
             
-            renderSurahList(); // Segar semula senarai agar elemen aktif ditandakan dengan betul
+            renderSurahList();
 
             audioElement.src = audioUrl;
             audioElement.play().then(() => {
@@ -237,7 +224,9 @@
 
         function togglePlayPause() {
             if (!audioElement.src) {
-                playIndex(0);
+                if (chaptersData.length > 0) {
+                    playChapter(chaptersData[0].id);
+                }
                 return;
             }
             if (audioElement.paused) {
@@ -260,19 +249,34 @@
         }
 
         function playPrev() {
-            if (currentIndex > 0) {
-                playIndex(currentIndex - 1);
+            const currentActiveId = currentIndex + 1;
+            let queue = getPlayQueue(currentActiveId);
+            if (queue.length === 0) return;
+
+            let queueIndex = queue.findIndex(c => c.id === currentActiveId);
+            if (queueIndex > 0) {
+                playChapter(queue[queueIndex - 1].id);
+            } else {
+                playChapter(queue[queue.length - 1].id);
             }
         }
 
         function playNext() {
+            const currentActiveId = currentIndex + 1;
+            let queue = getPlayQueue(currentActiveId);
+            if (queue.length === 0) return;
+
             if (isShuffle) {
-                const randomIndex = Math.floor(Math.random() * chaptersData.length);
-                playIndex(randomIndex);
-            } else if (currentIndex < chaptersData.length - 1) {
-                playIndex(currentIndex + 1);
+                const randomItem = queue[Math.floor(Math.random() * queue.length)];
+                playChapter(randomItem.id);
+                return;
+            }
+
+            let queueIndex = queue.findIndex(c => c.id === currentActiveId);
+            if (queueIndex !== -1 && queueIndex < queue.length - 1) {
+                playChapter(queue[queueIndex + 1].id);
             } else {
-                playIndex(0);
+                playChapter(queue[0].id);
             }
         }
 
@@ -315,12 +319,8 @@
             if (repeatMode === 2) {
                 audioElement.currentTime = 0;
                 audioElement.play();
-            } else if (repeatMode === 1 || repeatMode === 0) {
-                if (currentIndex < chaptersData.length - 1 || isShuffle) {
-                    playNext();
-                } else {
-                    updatePlayPauseIcons(false);
-                }
+            } else {
+                playNext();
             }
         };
 
