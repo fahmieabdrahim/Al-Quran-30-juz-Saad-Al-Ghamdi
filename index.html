@@ -18,7 +18,7 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center pt-4 pb-16 px-4">
 
     <!-- Pemain Audio Ala Spotify (Melekat di Atas) -->
-    <div class="sticky top-0 left-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-800 py-3 px-4 shadow-lg z-50 flex justify-center mb-6">
+    <div class="sticky top-0 left-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-800 py-3 px-4 shadow-lg z-50 flex justify-center mb-4">
         <div class="w-full max-w-md">
             <!-- Tajuk & Info -->
             <div class="text-center mb-2">
@@ -68,6 +68,18 @@
         </div>
     </div>
 
+    <!-- Bar Penapis (Semua / Disukai) -->
+    <div class="w-full max-w-md flex items-center justify-between mb-4 px-1">
+        <span id="list-counter" class="text-xs text-slate-400 font-medium">Senarai Surah (114)</span>
+        <div class="flex gap-2">
+            <button id="filter-all" onclick="setFilter('all')" class="text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer">Semua</button>
+            <button id="filter-liked" onclick="setFilter('liked')" class="text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 text-rose-500 fill-rose-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                Disukai
+            </button>
+        </div>
+    </div>
+
     <!-- Senarai 114 Surah Penuh -->
     <main id="surah-list" class="w-full max-w-md divide-y divide-slate-800">
         <div id="loading" class="text-center py-8 text-slate-500 text-sm">
@@ -82,6 +94,8 @@
         let chaptersData = [];
         let isShuffle = false;
         let repeatMode = 0; // 0: Tutup, 1: Ulang Semua (Auto-Next), 2: Ulang Satu
+        let currentFilter = 'all'; // 'all' atau 'liked'
+        let likedSurahs = JSON.parse(localStorage.getItem('likedSurahs')) || [];
 
         const audioElement = document.getElementById('audio-player');
         const nowPlayingText = document.getElementById('now-playing');
@@ -94,6 +108,9 @@
         const btnRepeat = document.getElementById('btn-repeat');
         const repeatBadge = document.getElementById('repeat-badge');
         const btnShuffle = document.getElementById('btn-shuffle');
+        const filterAllBtn = document.getElementById('filter-all');
+        const filterLikedBtn = document.getElementById('filter-liked');
+        const listCounter = document.getElementById('list-counter');
 
         const AUDIO_BASE_URL = "https://server7.mp3quran.net/s_gmd/";
 
@@ -109,31 +126,80 @@
                 const response = await fetch('https://api.quran.com/api/v4/chapters?language=ms');
                 const data = await response.json();
                 chaptersData = data.chapters;
-                renderSurahList(chaptersData);
+                renderSurahList();
             } catch (error) {
                 console.error("Gagal memuatkan senarai surah:", error);
                 surahListContainer.innerHTML = `<div class="text-center py-8 text-red-400 text-sm">Gagal memuatkan data dari API.</div>`;
             }
         }
 
-        function renderSurahList(chapters) {
+        function setFilter(filter) {
+            currentFilter = filter;
+            if (filter === 'all') {
+                filterAllBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer";
+                filterLikedBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer flex items-center gap-1";
+            } else {
+                filterLikedBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white transition shadow-sm cursor-pointer flex items-center gap-1";
+                filterAllBtn.className = "text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition shadow-sm cursor-pointer";
+            }
+            renderSurahList();
+        }
+
+        function toggleLike(event, chapterId) {
+            event.stopPropagation(); // Elak daripada mencetuskan event main audio pada senarai
+            const index = likedSurahs.indexOf(chapterId);
+            if (index > -1) {
+                likedSurahs.splice(index, 1);
+            } else {
+                likedSurahs.push(chapterId);
+            }
+            localStorage.setItem('likedSurahs', JSON.stringify(likedSurahs));
+            renderSurahList();
+        }
+
+        function renderSurahList() {
             surahListContainer.innerHTML = '';
-            chapters.forEach((chapter, index) => {
+            
+            let filteredChapters = chaptersData;
+            if (currentFilter === 'liked') {
+                filteredChapters = chaptersData.filter(chapter => likedSurahs.includes(chapter.id));
+            }
+
+            listCounter.innerText = `Senarai Surah (${filteredChapters.length})`;
+
+            if (filteredChapters.length === 0) {
+                surahListContainer.innerHTML = `<div class="text-center py-12 text-slate-500 text-sm">Tiada surah disukai lagi. Klik ikon hati pada mana-mana surah untuk menambahnya di sini.</div>`;
+                return;
+            }
+
+            filteredChapters.forEach((chapter) => {
+                const originalIndex = chaptersData.findIndex(c => c.id === chapter.id);
                 const formattedId = String(chapter.id).padStart(3, '0');
-                const audioUrl = `${AUDIO_BASE_URL}${formattedId}.mp3`;
+                const isLiked = likedSurahs.includes(chapter.id);
 
                 const div = document.createElement('div');
                 div.className = "py-3 px-3 flex items-center justify-between cursor-pointer hover:bg-slate-800/60 transition rounded-lg";
+                if (currentIndex === originalIndex) {
+                    div.classList.add('bg-slate-800', 'font-semibold');
+                    currentElement = div;
+                }
                 
                 div.innerHTML = `
                     <div class="flex items-center gap-3 pr-2 overflow-hidden">
                         <span class="text-xs font-semibold text-slate-500 w-6 text-right shrink-0">${chapter.id}.</span>
                         <h2 class="text-sm font-medium text-slate-300 truncate">${chapter.name_simple} (${chapter.translated_name.name})</h2>
                     </div>
-                    <span id="duration-${chapter.id}" class="text-xs text-slate-500 font-mono shrink-0">--:--</span>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <button onclick="toggleLike(event, ${chapter.id})" title="Suka" class="p-1 text-slate-400 hover:text-rose-500 transition cursor-pointer">
+                            <svg class="w-5 h-5 ${isLiked ? 'text-rose-500 fill-rose-500' : ''}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </button>
+                        <span id="duration-${chapter.id}" class="text-xs text-slate-500 font-mono">--:--</span>
+                    </div>
                 `;
 
-                div.onclick = () => playIndex(index);
+                div.onclick = () => playIndex(originalIndex);
                 surahListContainer.appendChild(div);
             });
         }
@@ -144,32 +210,25 @@
             const chapter = chaptersData[index];
             const formattedId = String(chapter.id).padStart(3, '0');
             const audioUrl = `${AUDIO_BASE_URL}${formattedId}.mp3`;
-            const element = surahListContainer.children[index];
+            
+            renderSurahList(); // Segar semula senarai agar elemen aktif ditandakan dengan betul
 
-            playAudio(audioUrl, chapter.name_simple, element, chapter.id);
-        }
-
-        function playAudio(audioSrc, title, element, chapterId) {
-            audioElement.src = audioSrc;
+            audioElement.src = audioUrl;
             audioElement.play().then(() => {
                 updatePlayPauseIcons(true);
             }).catch(error => {
                 console.log("Gagal memainkan audio:", error);
             });
 
-            if (currentElement && currentElement !== element) {
-                currentElement.classList.remove('bg-slate-800', 'font-semibold');
+            if (currentElement) {
+                currentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
-
-            currentElement = element;
-            currentElement.classList.add('bg-slate-800', 'font-semibold');
-
-            currentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            nowPlayingText.innerText = `Surah ${title} - Saad Al Ghamdi`;
+            
+            nowPlayingText.innerText = `Surah ${chapter.name_simple} - Saad Al Ghamdi`;
 
             audioElement.onloadedmetadata = () => {
                 durationTimeEl.innerText = formatTime(audioElement.duration);
-                const durationSpan = document.getElementById(`duration-${chapterId}`);
+                const durationSpan = document.getElementById(`duration-${chapter.id}`);
                 if (durationSpan) {
                     durationSpan.innerText = formatTime(audioElement.duration);
                 }
